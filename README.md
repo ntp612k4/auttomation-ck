@@ -24,4 +24,3 @@
 
 - Docker & Docker Compose
 - Node.js (v16+)
-- Git thêm file redeme giúp tôi
