@@ -14,8 +14,7 @@ n8n/.n8n/
 n8n_backup/
 n8n_workflow/
 
-# MySQL init (bỏ dòng này nếu muốn commit script)
-mysql-init/
+
 
 # Logs
 *.log
