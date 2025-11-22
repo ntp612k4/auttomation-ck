@@ -1,0 +1,26 @@
+# Node modules
+node_modules/
+backend/node_modules/
+dashboard/node_modules/
+
+# Env
+.env
+backend/.env
+dashboard/.env
+n8n/.env
+
+# n8n data & backups
+n8n/.n8n/
+n8n_backup/
+n8n_workflow/
+
+# MySQL init (bỏ dòng này nếu muốn commit script)
+mysql-init/
+
+# Logs
+*.log
+
+# Frontend build output
+dashboard/build/
+dist/
+

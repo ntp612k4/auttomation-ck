@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  # Dịch vụ cơ sở dữ liệu MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      # Ánh xạ cổng 3306 của container ra cổng 3307 trên máy Windows của bạn
+      # để tránh xung đột nếu bạn đã cài MySQL trên máy thật
+      - "3307:3306"
+    volumes:
+      # Lưu trữ dữ liệu MySQL để không bị mất khi container bị xóa
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - my_app_network
+
+  # Dịch vụ n8n
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_service
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      # Cấu hình để n8n kết nối tới MySQL
+      DB_TYPE: mysql
+      DB_MYSQL_HOST: mysql_db
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_DATABASE: ${MYSQL_DATABASE}
+      DB_MYSQL_USER: ${MYSQL_USER}
+      DB_MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      N8N_JOB_POST_WEBHOOK_URL: ${N8N_JOB_POST_WEBHOOK_URL}
+      N8N_CANDIDATE_MAIL_WEBHOOK_URL: ${N8N_CANDIDATE_MAIL_WEBHOOK_URL}
+      N8N_INTERVIEW_INVITE_WEBHOOK_URL: ${N8N_INTERVIEW_INVITE_WEBHOOK_URL}
+    volumes:
+      # Lưu trữ dữ liệu và workflow của n8n
+      - ./n8n/.n8n:/home/node/.n8n
+    depends_on:
+      # Khởi động n8n sau khi mysql đã sẵn sàng
+      - mysql
+    networks:
+      - my_app_network
+
+  # Dịch vụ Backend (ví dụ: Node.js)
+  backend:
+    build:
+      context: ./backend # Trỏ đến thư mục chứa Dockerfile của backend
+    container_name: backend_api
+    restart: always
+    ports:
+      - "3001:3000" # Ánh xạ cổng của backend ra máy host
+    environment:
+      # Cung cấp chuỗi kết nối cho backend
+      DB_HOST: mysql_db
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_PORT: 3306
+      N8N_JOB_POST_WEBHOOK_URL: ${N8N_JOB_POST_WEBHOOK_URL}
+      N8N_CANDIDATE_MAIL_WEBHOOK_URL: ${N8N_CANDIDATE_MAIL_WEBHOOK_URL}
+      N8N_INTERVIEW_INVITE_WEBHOOK_URL: ${N8N_INTERVIEW_INVITE_WEBHOOK_URL}
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql_db:3306/${MYSQL_DATABASE}
+    depends_on:
+      - mysql
+    networks:
+      - my_app_network
+
+  # Dịch vụ Frontend (ví dụ: React/Vue)
+  frontend:
+    build:
+      context: ./dashboard # Trỏ đến thư mục chứa Dockerfile của frontend
+    container_name: frontend_dashboard
+    ports:
+      - "8080:80" # Ánh xạ cổng 80 của container (thường là web server) ra cổng 8080 máy host
+    depends_on:
+      - backend
+    networks:
+      - my_app_network
+
+# Định nghĩa volumes để lưu trữ dữ liệu
+volumes:
+  mysql_data:
+
+# Định nghĩa mạng chung cho các dịch vụ
+networks:
+  my_app_network:
+    driver: bridge
