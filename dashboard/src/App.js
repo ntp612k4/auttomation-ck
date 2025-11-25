@@ -5,10 +5,12 @@ import TabDepartments from "./components/TabDepartments";
 import TabEmployees from "./components/TabEmployees";
 import TabRecruitment from "./components/TabRecruitment";
 import TabPassedApplicants from "./components/TabPassedApplicants";
+import InviteModal from "./components/modals/InviteModal"; // 👈 THÊM DÒNG NÀY
 import { fetchDepartments, fetchEmployees, fetchAiIndex } from "./services/api";
 
 const HRDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [showInviteModal, setShowInviteModal] = useState(false); // 👈 THÊM DÒNG NÀY
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -133,8 +135,17 @@ const HRDashboard = () => {
           />
         )}
         {activeTab === "recruitment" && <TabRecruitment />}
-        {activeTab === "pass" && <TabPassedApplicants />}
+        {activeTab === "pass" && (
+          <TabPassedApplicants
+            onShowInviteModal={() => setShowInviteModal(true)}
+          />
+        )}
       </div>
+
+      {/* Render Modal ở đây, bên ngoài các tab */}
+      {showInviteModal && (
+        <InviteModal onClose={() => setShowInviteModal(false)} />
+      )}
     </div>
   );
 };

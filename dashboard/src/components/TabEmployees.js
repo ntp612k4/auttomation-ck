@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, ClipboardList, Star } from "lucide-react";
 import EmployeeModal from "./modals/EmployeeModal";
 import {
   createEmployee,
@@ -7,11 +7,15 @@ import {
   deleteEmployee,
 } from "../services/api";
 
+const API_URL = "http://localhost:3001/api";
+
 const TabEmployees = ({ employees, departments, refreshData, loading }) => {
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("create");
   const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [isTriggeringSurvey, setIsTriggeringSurvey] = useState(false);
+  const [isTriggingEvaluation, setIsTriggingEvaluation] = useState(false);
 
   const openCreateModal = () => {
     setModalMode("create");
@@ -34,6 +38,7 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
         alert("Đã xóa nhân viên!");
       } else alert("Lỗi khi xóa!");
     } catch (error) {
+      console.error("Lỗi khi xóa:", error);
       alert("Lỗi kết nối!");
     }
   };
@@ -56,8 +61,77 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
         alert("Có lỗi xảy ra!");
       }
     } catch (e) {
+      console.error("Lỗi khi lưu:", e);
       alert("Lỗi kết nối!");
     }
+  };
+
+  // Hàm kích hoạt đánh giá ứng viên
+  const handleTriggerEvaluation = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn bắt đầu quy trình đánh giá ứng viên không?"
+      )
+    ) {
+      return;
+    }
+
+    setIsTriggingEvaluation(true);
+    try {
+      const response = await fetch(`${API_URL}/trigger-evaluation`, {
+        method: "POST",
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Có lỗi xảy ra.");
+      }
+
+      alert("✅ Đã gửi yêu cầu đánh giá ứng viên thành công!");
+    } catch (error) {
+      console.error("Lỗi khi kích hoạt đánh giá:", error);
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setIsTriggingEvaluation(false);
+    }
+  };
+
+  // Hàm kích hoạt khảo sát nhân viên
+  const handleTriggerSurvey = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn bắt đầu quy trình khảo sát nhân viên không?"
+      )
+    ) {
+      return;
+    }
+
+    setIsTriggeringSurvey(true);
+    try {
+      const response = await fetch(`${API_URL}/trigger-survey`, {
+        method: "POST",
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Có lỗi xảy ra.");
+      }
+
+      alert("✅ Đã gửi yêu cầu khảo sát nhân viên thành công!");
+    } catch (error) {
+      console.error("Lỗi khi kích hoạt khảo sát:", error);
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setIsTriggeringSurvey(false);
+    }
+  };
+
+  // Hàm lấy tên phòng ban từ ID
+  const getDepartmentName = (deptId) => {
+    const dept = departments.find(
+      (d) => d.department_id === deptId || d.id === deptId
+    );
+    return dept ? dept.department_name || dept.name : "-";
   };
 
   const filteredEmployees =
@@ -74,13 +148,39 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
           <h3 className="text-xl font-semibold text-gray-800">
             Danh sách nhân viên
           </h3>
-          <button
-            onClick={openCreateModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus size={20} />{" "}
-            <span className="font-medium">Thêm nhân viên</span>
-          </button>
+
+          {/* CONTAINER CHO 3 NÚT */}
+          <div className="flex gap-3">
+            <button
+              onClick={openCreateModal}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <Plus size={20} />
+              <span className="font-medium">Thêm nhân viên</span>
+            </button>
+
+            <button
+              onClick={handleTriggerEvaluation}
+              disabled={isTriggingEvaluation}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-purple-700 transition-colors shadow-sm disabled:bg-purple-400 disabled:cursor-not-allowed"
+            >
+              <Star size={20} />
+              <span className="font-medium">
+                {isTriggingEvaluation ? "Đang xử lý..." : "Đánh giá"}
+              </span>
+            </button>
+
+            <button
+              onClick={handleTriggerSurvey}
+              disabled={isTriggeringSurvey}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors shadow-sm disabled:bg-green-400 disabled:cursor-not-allowed"
+            >
+              <ClipboardList size={20} />
+              <span className="font-medium">
+                {isTriggeringSurvey ? "Đang xử lý..." : "Khảo sát nhân viên"}
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="p-6 border-b border-gray-200 bg-gray-50">
@@ -91,8 +191,11 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
           >
             <option value="all">Tất cả phòng ban</option>
             {departments.map((dept) => (
-              <option key={dept.department_id} value={dept.department_id}>
-                {dept.department_name}
+              <option
+                key={dept.department_id || dept.id}
+                value={dept.department_id || dept.id}
+              >
+                {dept.department_name || dept.name}
               </option>
             ))}
           </select>
@@ -100,6 +203,10 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
 
         {loading ? (
           <div className="p-12 text-center text-gray-500">Đang tải...</div>
+        ) : filteredEmployees.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            Không có nhân viên nào
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -137,7 +244,7 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {emp.department_name}
+                      {getDepartmentName(emp.department_id)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {emp.position || "-"}
@@ -156,13 +263,15 @@ const TabEmployees = ({ employees, departments, refreshData, loading }) => {
                     <td className="px-6 py-4 whitespace-nowrap flex space-x-2">
                       <button
                         onClick={() => openEditModal(emp)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
+                        className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                        title="Chỉnh sửa"
                       >
                         <Edit2 size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(emp.id, emp.name)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                        className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded"
+                        title="Xóa"
                       >
                         <Trash2 size={18} />
                       </button>

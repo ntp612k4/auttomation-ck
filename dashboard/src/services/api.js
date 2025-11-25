@@ -22,9 +22,22 @@ export const fetchAiIndex = async () => {
   return res.ok ? await res.json() : [];
 };
 
+const API_BASE_URL = "http://localhost:3001/api";
+
 export const fetchPassedApplicants = async () => {
-  const res = await fetch(`${API_URL}/applicants_pass_dat`);
-  return res.ok ? await res.json() : [];
+  try {
+    const response = await fetch(`${API_BASE_URL}/applicant-pass`);
+    if (!response.ok) {
+      throw new Error(`Lỗi HTTP: ${response.status}`);
+    }
+    const result = await response.json();
+    // API của bạn trả về { success, count, data }, nên chúng ta cần lấy `result.data`
+    return result.data || [];
+  } catch (error) {
+    console.error("Lỗi khi tải danh sách ứng viên pass:", error);
+    // Ném lỗi ra ngoài để component có thể xử lý
+    throw error;
+  }
 };
 
 export const createEmployee = async (data) => {
@@ -50,4 +63,20 @@ export const deleteEmployee = async (id) => {
     method: "DELETE",
     credentials: "include",
   });
+};
+
+export const deletePassedApplicant = async (id) => {
+  // ... logic xóa
+  try {
+    const response = await fetch(`${API_BASE_URL}/applicant-pass/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      throw new Error("Không thể xóa ứng viên.");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Lỗi khi xóa ứng viên:", error);
+    throw error;
+  }
 };

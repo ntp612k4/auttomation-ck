@@ -1,199 +1,319 @@
 const pool = require("../config/database");
 
-exports.createApplication = async (req, res) => {
+/**
+ * Lưu kết quả AI đánh giá ứng viên
+ * POST /api/ai-evaluation
+ */
+exports.saveEvaluation = async (req, res) => {
   try {
     const {
+      application_id,
       full_name,
       email,
       phone,
       position,
-      education,
-      language_cert,
-      years_experience,
-      professional_skills,
+      education_score,
+      language_score,
+      experience_score,
+      skills_score,
+      motivation_score,
+      ai_overall_score,
+      ai_recommendation,
+      is_passed,
+      ai_reasoning,
       strengths,
-      motivation,
+      concerns,
+      interview_topics,
     } = req.body;
-    if (!full_name || !email || !position)
-      return res
-        .status(400)
-        .json({ message: "Vui lòng điền đầy đủ thông tin bắt buộc!" });
 
-    const query = `INSERT INTO job_applications (full_name, email, phone, position, education, language_cert, years_experience, professional_skills, strengths, motivation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
-    const [result] = await pool.query(query, [
+    // Validate required fields
+    if (!application_id || !email || !full_name) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin bắt buộc: application_id, email, full_name",
+      });
+    }
+
+    // Insert vào database
+    const query = `
+      INSERT INTO ai_evaluation_results (
+        application_id, full_name, email, phone, position,
+        education_score, language_score, experience_score, 
+        skills_score, motivation_score, ai_overall_score,
+        ai_recommendation, is_passed, ai_reasoning,
+        strengths, concerns, interview_topics
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      application_id,
       full_name,
       email,
-      phone,
+      phone || null,
       position,
-      education,
-      language_cert,
-      years_experience,
-      professional_skills,
-      strengths,
-      motivation,
-    ]);
+      education_score || 0,
+      language_score || 0,
+      experience_score || 0,
+      skills_score || 0,
+      motivation_score || 0,
+      ai_overall_score || 0,
+      ai_recommendation || "PENDING",
+      is_passed || false,
+      ai_reasoning || "",
+      JSON.stringify(strengths || []),
+      JSON.stringify(concerns || []),
+      JSON.stringify(interview_topics || []),
+    ];
+
+    const [result] = await pool.query(query, values);
+
     res.status(201).json({
-      message: "Ứng viên đã được lưu thành công!",
-      id: result.insertId,
+      success: true,
+      message: "✅ Đã lưu kết quả AI đánh giá thành công!",
+      data: {
+        id: result.insertId,
+        application_id,
+        ai_overall_score,
+        ai_recommendation,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
-  }
-};
-
-exports.getApplications = async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      "SELECT id, full_name, email, phone, position, education, language_cert, years_experience, professional_skills, strengths, motivation, created_at FROM job_applications ORDER BY created_at DESC"
-    );
-    res.json(rows);
-  } catch (error) {
+    console.error("❌ Lỗi khi lưu kết quả AI:", error);
     res.status(500).json({
-      message: "Lỗi khi lấy danh sách ứng viên",
+      success: false,
+      message: "Lỗi máy chủ khi lưu kết quả AI",
       error: error.message,
     });
   }
 };
 
-exports.updateAiResult = async (req, res) => {
+/**
+ * Lấy danh sách job applications
+ * GET /api/job_applications
+ */
+exports.getApplications = async (req, res) => {
   try {
-    const { id } = req.params;
-    const {
-      ai_overall_score,
-      ai_reasoning,
-      educationScore,
-      experienceScore,
-      skillsScore,
-      motivationScore,
-      ai_recommendation,
-      languageScore,
-      strengths,
-      concerns,
-      interviewTopics,
-      isPassed,
-    } = req.body;
-    const query = `UPDATE job_applications SET ai_overall_score = ?, ai_reasoning = ?, educationScore = ?, experienceScore = ?, skillsScore = ?, motivationScore = ?, ai_recommendation = ?, languageScore = ?, strengths = ?, concerns = ?, interviewTopics = ?, isPassed = ? WHERE id = ?`;
-    const values = [
-      ai_overall_score,
-      ai_reasoning,
-      educationScore,
-      experienceScore,
-      skillsScore,
-      motivationScore,
-      ai_recommendation,
-      languageScore,
-      strengths,
-      concerns,
-      interviewTopics,
-      isPassed,
-      id,
-    ];
-    const [result] = await pool.query(query, values);
-    if (result.affectedRows === 0)
-      return res
-        .status(404)
-        .json({ message: `Không tìm thấy ứng viên với ID = ${id}` });
-    res
-      .status(200)
-      .json({ message: `✅ Đã cập nhật thành công ứng viên ID = ${id}` });
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
-  }
-};
+    const { status, position, limit = 50 } = req.query;
 
-// --- Applicants Pass ---
-exports.createPassApplicant = async (req, res) => {
-  try {
-    const {
-      id,
-      full_name,
-      email,
-      phone,
-      position,
-      education,
-      language_cert,
-      years_experience,
-      professional_skills,
-      strengths,
-      motivation,
-      ai_overall_score,
-      ai_recommendation,
-      ai_reasoning,
-      status,
-      concerns,
-      interviewTopics,
-      isPassed,
-      educationScore,
-      languageScore,
-      experienceScore,
-      skillsScore,
-      motivationScore,
-      created_at,
-    } = req.body;
-    if (!full_name || !email || !position)
-      return res
-        .status(400)
-        .json({ message: "Vui lòng điền đầy đủ thông tin bắt buộc!" });
+    let query = "SELECT * FROM job_applications WHERE 1=1";
+    const params = [];
 
-    const query = `INSERT INTO applicants_pass (id, full_name, email, phone, position, education, language_cert, years_experience, professional_skills, strengths, motivation, ai_overall_score, ai_recommendation, ai_reasoning, status, concerns, interviewTopics, isPassed, educationScore, languageScore, experienceScore, skillsScore, motivationScore, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const [result] = await pool.query(query, [
-      id,
-      full_name,
-      email,
-      phone,
-      position,
-      education,
-      language_cert,
-      years_experience,
-      professional_skills,
-      strengths,
-      motivation,
-      ai_overall_score,
-      ai_recommendation,
-      ai_reasoning,
-      status || "NEW",
-      concerns,
-      interviewTopics,
-      isPassed,
-      educationScore,
-      languageScore,
-      experienceScore,
-      skillsScore,
-      motivationScore,
-      created_at || new Date(),
-    ]);
-    res.status(201).json({
-      message: "Ứng viên đạt phỏng vấn đã được lưu vào bảng applicants_pass!",
-      id: result.insertId,
+    if (status) {
+      query += " AND status = ?";
+      params.push(status);
+    }
+
+    if (position) {
+      query += " AND position LIKE ?";
+      params.push(`%${position}%`);
+    }
+
+    query += " ORDER BY applied_date DESC LIMIT ?";
+    params.push(parseInt(limit));
+
+    const [rows] = await pool.query(query, params);
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Lỗi máy chủ khi lưu ứng viên!", error: error.message });
+    console.error("❌ Lỗi khi lấy job applications:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách job applications",
+      error: error.message,
+    });
   }
 };
 
-exports.getPassApplicants = async (req, res) => {
+/**
+ * Tạo job application mới
+ * POST /api/job_applications
+ */
+exports.createApplication = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT * FROM applicants_pass ORDER BY created_at DESC`
+    const { full_name, email, phone, position, resume_url, cover_letter } =
+      req.body;
+
+    // Validate required fields
+    if (!full_name || !email || !position) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin bắt buộc: full_name, email, position",
+      });
+    }
+
+    // Check if email already exists
+    const [existingApp] = await pool.query(
+      "SELECT id FROM job_applications WHERE email = ?",
+      [email]
     );
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ message: "Lỗi server", error: err.message });
+
+    if (existingApp.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Email ${email} đã tồn tại trong hệ thống`,
+        existing_id: existingApp[0].id,
+      });
+    }
+
+    const query = `
+      INSERT INTO job_applications 
+      (full_name, email, phone, position, resume_url, cover_letter) 
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    const [result] = await pool.query(query, [
+      full_name,
+      email,
+      phone || null,
+      position,
+      resume_url || null,
+      cover_letter || null,
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: "✅ Đã tạo job application thành công!",
+      data: {
+        id: result.insertId,
+        full_name,
+        email,
+        position,
+        status: "pending",
+      },
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi tạo job application:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi tạo job application",
+      error: error.message,
+    });
   }
 };
 
-exports.deletePassApplicant = async (req, res) => {
+/**
+ * Lấy chi tiết job application
+ * GET /api/job_applications/:id
+ */
+exports.getApplicationById = async (req, res) => {
   try {
+    const { id } = req.params;
+
+    const query = `
+      SELECT ja.*, 
+             aer.ai_overall_score,
+             aer.ai_recommendation,
+             aer.is_passed,
+             aer.evaluated_at
+      FROM job_applications ja
+      LEFT JOIN ai_evaluation_results aer ON ja.id = aer.application_id
+      WHERE ja.id = ?
+    `;
+
+    const [rows] = await pool.query(query, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy job application với ID = ${id}`,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: rows[0],
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy chi tiết application:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy chi tiết application",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Lấy applications chưa được đánh giá AI
+ * GET /api/job_applications/pending-ai-evaluation
+ */
+exports.getPendingAiEvaluation = async (req, res) => {
+  try {
+    const query = `
+      SELECT ja.* 
+      FROM job_applications ja
+      LEFT JOIN ai_evaluation_results aer ON ja.id = aer.application_id
+      WHERE aer.id IS NULL AND ja.status = 'pending'
+      ORDER BY ja.applied_date DESC
+    `;
+
+    const [rows] = await pool.query(query);
+
+    res.json({
+      success: true,
+      message: `📋 Tìm thấy ${rows.length} applications chưa được đánh giá AI`,
+      data: rows,
+      pending_count: rows.length,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy pending applications:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách pending applications",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Cập nhật status job application
+ * PUT /api/job_applications/:id/status
+ */
+exports.updateApplicationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = [
+      "pending",
+      "reviewing",
+      "interviewed",
+      "hired",
+      "rejected",
+    ];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Status không hợp lệ. Chọn: ${validStatuses.join(", ")}`,
+      });
+    }
+
     const [result] = await pool.query(
-      `DELETE FROM applicants_pass WHERE id = ?`,
-      [req.params.id]
+      "UPDATE job_applications SET status = ?, updated_at = NOW() WHERE id = ?",
+      [status, id]
     );
-    if (result.affectedRows === 0)
-      return res.status(404).json({ message: "Không tìm thấy" });
-    res.json({ message: "Đã xóa" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy job application với ID = ${id}`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `✅ Đã cập nhật status thành '${status}' cho application ID = ${id}`,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi cập nhật status",
+      error: error.message,
+    });
   }
 };
