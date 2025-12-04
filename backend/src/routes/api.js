@@ -25,6 +25,10 @@ router.post("/employees", employeeController.createEmployee);
 router.put("/employees/:id", employeeController.updateEmployee);
 router.delete("/employees/:id", employeeController.deleteEmployee);
 
+// ✅ Đảm bảo route này tồn tại
+router.post("/send-interview-invites", webhookController.sendInterviewInvites);
+router.post("/send-mail-candidate", webhookController.sendMailCandidate);
+router.post("/post-job", webhookController.postJob);
 // Nguyệt
 // Job Applications routes
 router.get("/job_applications", applicationController.getApplications);
@@ -52,7 +56,10 @@ router.put("/ai-evaluation/:id/status", aiEvaluationController.updateStatus);
 // Mạnh
 // Employee Survey Trigger
 router.post("/trigger-survey", webhookController.triggerEmployeeSurvey);
-router.post("/trigger-evaluation", webhookController.triggerCandidateEvaluation);
+router.post(
+  "/trigger-evaluation",
+  webhookController.triggerCandidateEvaluation
+);
 
 // Nhi
 // Applicant Pass routes (Simplified)

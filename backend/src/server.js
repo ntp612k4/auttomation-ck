@@ -20,6 +20,7 @@ app.use(express.json());
 app.use("/api", apiRoutes);
 app.use("/api/ai-evaluation", aiEvaluationRoutes);
 
+
 // Khởi động server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend API đang chạy trên http://localhost:${PORT}`);
