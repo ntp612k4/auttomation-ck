@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const apiRoutes = require("./routes/api");
 const aiEvaluationRoutes = require("./routes/aiEvaluationRoutes");
+const onboardingRoutes = require("./routes/onboardingRoutes");
 
 const app = express();
 const PORT = 3000;
@@ -19,7 +20,7 @@ app.use(express.json());
 // Routes
 app.use("/api", apiRoutes);
 app.use("/api/ai-evaluation", aiEvaluationRoutes);
-
+app.use("/api/onboarding", onboardingRoutes);
 
 // Khởi động server
 app.listen(PORT, "0.0.0.0", () => {
