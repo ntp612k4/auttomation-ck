@@ -65,9 +65,9 @@ const InviteScheduleModal = ({ isOpen, onClose, passedApplicants = [] }) => {
 
     // ✅ Validation: Filter candidates hợp lệ (có email + tên)
     const validCandidates = passedApplicants
-      .filter((c) => c.email && c.full_name)
+      .filter((c) => c.email && c.name)
       .map((c) => ({
-        full_name: c.full_name,
+        name: c.name,
         email: c.email,
         position: c.position || "N/A",
         ai_overall_score: c.ai_overall_score || 0,
@@ -163,7 +163,7 @@ const InviteScheduleModal = ({ isOpen, onClose, passedApplicants = [] }) => {
             <ul className="text-xs space-y-1">
               {passedApplicants.map((candidate, idx) => (
                 <li key={idx} className="text-gray-700">
-                  {idx + 1}. <strong>{candidate.full_name}</strong> (
+                  {idx + 1}. <strong>{candidate.name}</strong> (
                   {candidate.email}) - <em>{candidate.position}</em>
                 </li>
               ))}

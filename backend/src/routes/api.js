@@ -7,17 +7,23 @@ const applicationController = require("../controllers/applicationController");
 const webhookController = require("../controllers/webhookController");
 const aiEvaluationController = require("../controllers/aiEvaluationController");
 const applicantPassController = require("../controllers/applicantPassController");
-
+// Phong
 // Stats & Overview
 router.get("/stats/overview", statsController.getOverview);
 router.get("/ai_index", statsController.getAiIndex);
 router.get("/employee-analysis", employeeController.getEmployeeAnalysis);
 router.post("/employee-analysis", employeeController.addEmployeeAnalysis);
 
-// Mạnh
+// Phong
 // Employees & Departments
 router.get("/departments", employeeController.getDepartments);
 router.get("/departments/details", employeeController.getDepartmentDetails);
+
+//Phong
+// --- SURVEY RESPONSES (MỚI) ---
+router.post("/survey-responses", employeeController.saveSurveyResponse);
+router.get("/survey-responses", employeeController.getSurveyResponses);
+router.get("/survey-responses/stats", employeeController.getSurveyStats);
 
 // Mạnh
 router.get("/employees", employeeController.getEmployees);

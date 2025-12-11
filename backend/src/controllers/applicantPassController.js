@@ -9,7 +9,7 @@ const axios = require("axios");
 exports.savePassedApplicant = async (req, res) => {
   try {
     const {
-      full_name,
+      name,
       email,
       position,
       ai_overall_score,
@@ -17,20 +17,20 @@ exports.savePassedApplicant = async (req, res) => {
       is_passed,
     } = req.body;
 
-    if (!full_name || !email || !position) {
+    if (!name || !email || !position) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu thông tin bắt buộc: full_name, email, position",
+        message: "Thiếu thông tin bắt buộc: name, email, position",
       });
     }
 
-    console.log(`📥 Saving passed applicant: ${full_name}`);
+    console.log(`📥 Saving passed applicant: ${name}`);
 
     const query = `
-      INSERT INTO applicant_pass (full_name, email, position, ai_overall_score, ai_recommendation, is_passed)
+      INSERT INTO applicant_pass (name, email, position, ai_overall_score, ai_recommendation, is_passed)
       VALUES (?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
-        full_name = VALUES(full_name),
+        name = VALUES(name),
         position = VALUES(position),
         ai_overall_score = VALUES(ai_overall_score),
         ai_recommendation = VALUES(ai_recommendation),
@@ -38,7 +38,7 @@ exports.savePassedApplicant = async (req, res) => {
     `;
 
     const values = [
-      full_name,
+      name,
       email,
       position,
       ai_overall_score || 0,
@@ -50,10 +50,10 @@ exports.savePassedApplicant = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `✅ Đã lưu ứng viên pass: ${full_name}`,
+      message: `✅ Đã lưu ứng viên pass: ${name}`,
       data: {
         id: result.insertId || result.affectedRows,
-        full_name,
+        name,
         email,
         position,
         ai_overall_score,
@@ -146,7 +146,7 @@ exports.sendMailCandidate = async (req, res) => {
 
   try {
     const {
-      full_name,
+      name,
       email,
       position,
       status, // "pass" hoặc "fail"
@@ -155,10 +155,10 @@ exports.sendMailCandidate = async (req, res) => {
     } = req.body;
 
     // ✅ Validation
-    if (!full_name || !email || !position || !status) {
+    if (!name || !email || !position || !status) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu thông tin bắt buộc: full_name, email, position, status",
+        message: "Thiếu thông tin bắt buộc: name, email, position, status",
       });
     }
 
@@ -177,7 +177,7 @@ exports.sendMailCandidate = async (req, res) => {
 
     // ✅ Payload
     const payload = {
-      full_name,
+      name,
       email,
       position,
       status, // "pass" or "fail"
@@ -199,7 +199,7 @@ exports.sendMailCandidate = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `✅ Gửi kết quả phỏng vấn thành công cho ${full_name}`,
+      message: `✅ Gửi kết quả phỏng vấn thành công cho ${name}`,
       data: response.data,
     });
   } catch (error) {

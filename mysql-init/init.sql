@@ -60,40 +60,37 @@ FROM departments d
 LEFT JOIN employees e ON d.id = e.department_id AND e.status = 'ACTIVE'
 LEFT JOIN survey_responses sr ON e.id = sr.employee_id
 GROUP BY d.id, d.name;
-
--- Bảng Survey Responses
 -- ===================================================
+DROP TABLE IF EXISTS survey_responses;
+
 CREATE TABLE IF NOT EXISTS survey_responses (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id INT NOT NULL COMMENT 'ID của nhân viên',
-    survey_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Ngày thực hiện khảo sát',
+    employee_id INT,
     
-    -- Dữ liệu thô từ khảo sát
-    satisfaction_score INT COMMENT 'Mức độ hài lòng (0-10)',
-    stress_level INT COMMENT 'Mức độ căng thẳng (0-10)',
-    work_life_balance INT COMMENT 'Cân bằng công việc-đời sống (0-10)',
-    comments TEXT COMMENT 'Góp ý thêm từ nhân viên',
-    
-    -- Kết quả phân tích từ AI
-    ai_sentiment VARCHAR(50) COMMENT 'Sắc thái chung (Positive, Negative, Neutral)',
-    ai_burnout_score INT COMMENT 'Điểm kiệt sức do AI đánh giá (0-100)',
-    ai_summary TEXT COMMENT 'Tóm tắt của AI về phản hồi',
-    needs_attention BOOLEAN DEFAULT FALSE COMMENT 'Cờ đánh dấu cần sự chú ý từ HR',
+    -- ✅ 4 FIELD CHÍNH
+    employee_email VARCHAR(255) NOT NULL COMMENT 'Email nhân viên',
+    employee_name VARCHAR(255) NOT NULL COMMENT 'Họ và tên nhân viên',
+    -- ✅ CHỈ CÓ 3 MỨC ĐỘ (không có TRUNG_BINH)
+    urgency_level ENUM('CAO', 'THAP', 'KHONG_XAC_DINH') 
+                  DEFAULT 'KHONG_XAC_DINH'
+                  COMMENT 'Mức độ khẩn cấp',
+    ai_summary TEXT COMMENT 'Tóm tắt từ AI',
     
     -- Metadata
+    survey_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    INDEX idx_employee_id (employee_id),
-    INDEX idx_needs_attention (needs_attention)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Lưu trữ phản hồi khảo sát của nhân viên';
-
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
+    INDEX idx_employee_email (employee_email),
+    INDEX idx_urgency_level (urgency_level),
+    INDEX idx_survey_date (survey_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tạo bảng job_applications trước
 CREATE TABLE IF NOT EXISTS job_applications (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  full_name VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   phone VARCHAR(20),
   position VARCHAR(100) NOT NULL,
@@ -117,12 +114,12 @@ INSERT INTO job_applications (full_name, email, phone, position, resume_url, sta
 ('Hoàng Thu Hà', 'hath@gmail.com', '0906543210', 'Product Manager', 'https://example.com/resume5.pdf', 'pending');
 
 DROP TABLE IF EXISTS ai_evaluation_results;
-
+ Nguyệt
 CREATE TABLE IF NOT EXISTS ai_evaluation_results (
     id INT PRIMARY KEY AUTO_INCREMENT,
     
     -- Thông tin ứng viên
-    full_name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     position VARCHAR(255) NOT NULL,
@@ -156,16 +153,16 @@ CREATE TABLE IF NOT EXISTS ai_evaluation_results (
     INDEX idx_ai_recommendation (ai_recommendation),
     INDEX idx_is_passed (is_passed),
     INDEX idx_evaluated_at (evaluated_at),
-    INDEX idx_full_name (full_name),
+    INDEX idx_name (name),
     INDEX idx_position (position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bảng lưu kết quả AI đánh giá ứng viên';
 
 
--- Drop bảng cũ nếu tồn tại
+-- Drop bảng cũ nếu tồn tại  Nhi
 DROP TABLE IF EXISTS applicant_pass;
 CREATE TABLE IF NOT EXISTS applicant_pass (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  full_name VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   position VARCHAR(100) NOT NULL,
   ai_overall_score DECIMAL(5,2),

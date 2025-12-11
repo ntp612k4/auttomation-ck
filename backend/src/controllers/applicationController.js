@@ -9,7 +9,7 @@ exports.saveEvaluation = async (req, res) => {
   try {
     const {
       application_id,
-      full_name,
+      name,
       email,
       phone,
       position,
@@ -28,17 +28,17 @@ exports.saveEvaluation = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!application_id || !email || !full_name) {
+    if (!application_id || !email || !name) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu thông tin bắt buộc: application_id, email, full_name",
+        message: "Thiếu thông tin bắt buộc: application_id, email, name",
       });
     }
 
     // Insert vào database
     const query = `
       INSERT INTO ai_evaluation_results (
-        application_id, full_name, email, phone, position,
+        application_id, name, email, phone, position,
         education_score, language_score, experience_score, 
         skills_score, motivation_score, ai_overall_score,
         ai_recommendation, is_passed, ai_reasoning,
@@ -48,7 +48,7 @@ exports.saveEvaluation = async (req, res) => {
 
     const values = [
       application_id,
-      full_name,
+      name,
       email,
       phone || null,
       position,
@@ -135,14 +135,14 @@ exports.getApplications = async (req, res) => {
  */
 exports.createApplication = async (req, res) => {
   try {
-    const { full_name, email, phone, position, resume_url, cover_letter } =
+    const { name, email, phone, position, resume_url, cover_letter } =
       req.body;
 
     // Validate required fields
-    if (!full_name || !email || !position) {
+    if (!name || !email || !position) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu thông tin bắt buộc: full_name, email, position",
+        message: "Thiếu thông tin bắt buộc: name, email, position",
       });
     }
 
@@ -162,12 +162,12 @@ exports.createApplication = async (req, res) => {
 
     const query = `
       INSERT INTO job_applications 
-      (full_name, email, phone, position, resume_url, cover_letter) 
+      (name, email, phone, position, resume_url, cover_letter) 
       VALUES (?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await pool.query(query, [
-      full_name,
+      name,
       email,
       phone || null,
       position,
@@ -180,7 +180,7 @@ exports.createApplication = async (req, res) => {
       message: "✅ Đã tạo job application thành công!",
       data: {
         id: result.insertId,
-        full_name,
+        name,
         email,
         position,
         status: "pending",

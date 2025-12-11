@@ -7,7 +7,7 @@ const pool = require("../config/database");
 exports.saveEvaluation = async (req, res) => {
   try {
     const {
-      full_name,
+      name,
       email,
       phone,
       position,
@@ -25,16 +25,16 @@ exports.saveEvaluation = async (req, res) => {
       interview_topics,
     } = req.body;
 
-    if (!email || !full_name || !position) {
+    if (!email || !name || !position) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu thông tin bắt buộc: email, full_name, position",
+        message: "Thiếu thông tin bắt buộc: email, name, position",
       });
     }
 
     const query = `
       INSERT INTO ai_evaluation_results (
-        full_name, email, phone, position,
+        name, email, phone, position,
         education_score, language_score, experience_score, 
         skills_score, motivation_score, ai_overall_score,
         ai_recommendation, is_passed, ai_reasoning,
@@ -43,7 +43,7 @@ exports.saveEvaluation = async (req, res) => {
     `;
 
     const values = [
-      full_name,
+      name,
       email,
       phone || null,
       position,
@@ -68,7 +68,7 @@ exports.saveEvaluation = async (req, res) => {
       message: "✅ Đã lưu kết quả AI đánh giá thành công!",
       data: {
         id: result.insertId,
-        full_name,
+        name,
         email,
         phone,
         position, // 👈 Thêm position vào response
@@ -171,7 +171,7 @@ exports.updateStatus = async (req, res) => {
 
     // 👈 Lấy thông tin ứng viên trước khi update
     const [current] = await pool.query(
-      "SELECT full_name, email, position FROM ai_evaluation_results WHERE id = ?",
+      "SELECT name, email, position FROM ai_evaluation_results WHERE id = ?",
       [id]
     );
 
@@ -192,7 +192,7 @@ exports.updateStatus = async (req, res) => {
       message: `✅ Đã cập nhật status thành ${status}`,
       data: {
         id: parseInt(id),
-        full_name: current[0].full_name,
+        name: current[0].name,
         email: current[0].email,
         position: current[0].position, // 👈 Bao gồm position trong response
         status: status,

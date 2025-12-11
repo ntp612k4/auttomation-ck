@@ -39,11 +39,11 @@ exports.sendMailCandidate = async (req, res) => {
   );
 
   try {
-    const { full_name, email, position, status, interview_result, note } =
+    const { name, email, position, status, interview_result, note } =
       req.body;
 
     // ✅ Validation
-    if (!full_name || !email || !position || !status) {
+    if (!name || !email || !position || !status) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
@@ -64,7 +64,7 @@ exports.sendMailCandidate = async (req, res) => {
     console.log(`🔗 Forwarding to N8N webhook: ${webhookUrl}`);
 
     const payload = {
-      full_name,
+      name,
       email,
       position,
       status,
@@ -85,7 +85,7 @@ exports.sendMailCandidate = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `✅ Gửi kết quả thành công cho ${full_name}`,
+      message: `✅ Gửi kết quả thành công cho ${name}`,
       data: response.data,
     });
   } catch (error) {
@@ -110,7 +110,7 @@ exports.sendMailCandidate = async (req, res) => {
  *   interview_date: "2025-12-05",
  *   interview_time: "09:00",
  *   candidates: [
- *     { full_name, email, position, ai_overall_score },
+ *     { name, email, position, ai_overall_score },
  *     ...
  *   ]
  * }
@@ -148,7 +148,7 @@ exports.sendInterviewInvites = async (req, res) => {
     }
 
     // ✅ VALIDATION 3
-    const validCandidates = candidates.filter((c) => c.email && c.full_name);
+    const validCandidates = candidates.filter((c) => c.email && c.name);
 
     if (validCandidates.length === 0) {
       console.error("❌ No valid candidates after filtering");

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Send, Trash2, Mail, Rocket } from "lucide-react";
+// ✅ THÊM: Import icon UserCheck
+import { Send, Trash2, Mail, Rocket, UserCheck } from "lucide-react";
 import { fetchPassedApplicants, deletePassedApplicant } from "../services/api";
 import InviteScheduleModal from "./modals/InviteScheduleModal";
 
@@ -12,7 +13,7 @@ const TabPassedApplicants = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [mailData, setMailData] = useState({
-    full_name: "",
+    name: "",
     email: "",
     position: "",
     status: "pass",
@@ -21,6 +22,9 @@ const TabPassedApplicants = () => {
 
   const [showOnboardModal, setShowOnboardModal] = useState(false);
   const [onboardData, setOnboardData] = useState(null);
+
+  // ✅ THÊM: State mới để track khi tiếp nhận nhân viên
+  const [isAcceptingEmployee, setIsAcceptingEmployee] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -54,13 +58,12 @@ const TabPassedApplicants = () => {
 
   /**
    * ✅ HANDLE APPLICANT SELECT: Chọn ứng viên để gửi mail kết quả
-   * (GIỮ NGUYÊN - dùng cho chức năng gửi mail kết quả từng người)
    */
   const handleApplicantSelect = (app) => {
     console.log("Selected applicant:", app);
     setSelectedApplicant(app);
     setMailData({
-      full_name: app.full_name || "",
+      name: app.name || "",
       email: app.email || "",
       position: app.position || "",
       status: "pass",
@@ -70,7 +73,6 @@ const TabPassedApplicants = () => {
 
   /**
    * ✅ HANDLE MAIL SUBMIT: Gửi mail kết quả cho 1 ứng viên
-   * (GIỮ NGUYÊN - chức năng cũ)
    */
   const handleMailSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +86,7 @@ const TabPassedApplicants = () => {
 
     try {
       const payload = {
-        full_name: mailData.full_name,
+        name: mailData.name,
         email: mailData.email,
         position: mailData.position,
         status: mailData.status,
@@ -112,7 +114,7 @@ const TabPassedApplicants = () => {
       alert("✅ Yêu cầu gửi mail đã được chuyển đến hệ thống!");
       setSelectedApplicant(null);
       setMailData({
-        full_name: "",
+        name: "",
         email: "",
         position: "",
         status: "pass",
@@ -129,7 +131,6 @@ const TabPassedApplicants = () => {
 
   /**
    * ✅ HANDLE DELETE: Xóa ứng viên khỏi danh sách
-   * (GIỮ NGUYÊN)
    */
   const handleDeleteApplicant = async (id) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa ứng viên này?")) return;
@@ -147,13 +148,52 @@ const TabPassedApplicants = () => {
     }
   };
 
-  // ✅ 4. HÀM MỚI: Các hàm xử lý cho chức năng Onboarding
+  /**
+   * ✅ HÀM MỚI: Xử lý tiếp nhận ứng viên làm nhân viên chính thức
+   */
+  const handleAcceptEmployee = async (applicant) => {
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn tiếp nhận ${applicant.name} làm nhân viên chính thức?`
+      )
+    ) {
+      return;
+    }
+
+    setIsAcceptingEmployee(true);
+    try {
+      console.log("📤 Accepting employee:", applicant.id);
+
+      const response = await fetch(`${API_URL}/onboarding/accept-employee`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicant_id: applicant.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Thất bại");
+      }
+
+      alert(`✅ Đã tiếp nhận ${applicant.name} làm nhân viên chính thức!`);
+
+      // Reload danh sách để cập nhật
+      loadData();
+    } catch (error) {
+      console.error("❌ Lỗi khi tiếp nhận nhân viên:", error);
+      alert("Lỗi: " + error.message);
+    } finally {
+      setIsAcceptingEmployee(false);
+    }
+  };
+
+  // ✅ Các hàm xử lý cho chức năng Onboarding
   const openOnboardModal = (applicant) => {
     setOnboardData({
       applicant: applicant,
       start_date: "",
-      document_link: "",   
-
+      document_link: "",
     });
     setShowOnboardModal(true);
   };
@@ -182,11 +222,9 @@ const TabPassedApplicants = () => {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Thất bại");
-      alert(
-        "✅ Onboarding thành công! Nhân viên đã được thêm và email chào mừng đã được gửi."
-      );
+      alert("✅ Email chào mừng đã được gửi thành công!");
       setShowOnboardModal(false);
-      loadData(); // Tải lại danh sách để xóa ứng viên đã onboard
+      loadData();
     } catch (error) {
       alert("Lỗi: " + error.message);
     } finally {
@@ -205,7 +243,7 @@ const TabPassedApplicants = () => {
         Danh sách & Gửi mail cho Ứng viên Đạt
       </h3>
 
-      {/* ✅ BUTTON HÀNG LOẠT: Đổi từ "Tải lại dữ liệu" → "Gửi mail phỏng vấn" */}
+      {/* ✅ BUTTON HÀNG LOẠT */}
       <button
         onClick={() => setShowInviteModal(true)}
         disabled={passedApplicants.length === 0 || loading}
@@ -216,7 +254,7 @@ const TabPassedApplicants = () => {
       </button>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-        {/* ✅ DANH SÁCH ỨNG VIÊN (GIỮ NGUYÊN) */}
+        {/* ✅ DANH SÁCH ỨNG VIÊN */}
         <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-md">
           {loading ? (
             <div className="flex justify-center items-center h-48">
@@ -268,7 +306,7 @@ const TabPassedApplicants = () => {
                     >
                       <td className="p-3">
                         <div className="font-medium text-gray-800">
-                          {app.full_name}
+                          {app.name}
                         </div>
                         <div className="text-xs text-gray-500">{app.email}</div>
                       </td>
@@ -284,25 +322,43 @@ const TabPassedApplicants = () => {
                         </span>
                       </td>
                       <td className="p-3 text-center">
-                        {/* ✅ 5. CẬP NHẬT JSX: Thêm nút Onboard (Rocket) vào bảng */}
+                        {/* ✅ CẬP NHẬT: Thêm 3 nút Rocket, UserCheck, Trash */}
                         <div className="flex items-center justify-center space-x-2">
+                          {/* Nút 1: Rocket (🚀) - Gửi Welcome Email */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               openOnboardModal(app);
                             }}
-                            className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100"
-                            title="Onboard nhân viên & Gửi Welcome Kit"
+                            className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100 transition-colors"
+                            title="Gửi Welcome Email"
+                            disabled={isAcceptingEmployee}
                           >
                             <Rocket size={16} />
                           </button>
+
+                          {/* ✅ NÚT MỚI 2: UserCheck (✅) - Tiếp Nhận Làm Nhân Viên */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAcceptEmployee(app);
+                            }}
+                            disabled={isAcceptingEmployee}
+                            className="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-100 disabled:opacity-50 transition-colors"
+                            title="Tiếp nhận làm nhân viên chính thức"
+                          >
+                            <UserCheck size={16} />
+                          </button>
+
+                          {/* Nút 3: Trash (🗑️) - Xóa Ứng Viên */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteApplicant(app.id);
                             }}
-                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
+                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors"
                             title="Xóa ứng viên"
+                            disabled={isAcceptingEmployee}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -316,7 +372,7 @@ const TabPassedApplicants = () => {
           )}
         </div>
 
-        {/* ✅ FORM GỬI MAIL KỈ QUẢ (GIỮ NGUYÊN - chức năng cũ) */}
+        {/* ✅ FORM GỬI MAIL KỈ QUẢ */}
         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
           {selectedApplicant ? (
             <form onSubmit={handleMailSubmit} className="space-y-4">
@@ -329,7 +385,7 @@ const TabPassedApplicants = () => {
                   Họ và tên
                 </label>
                 <input
-                  value={mailData.full_name}
+                  value={mailData.name}
                   disabled
                   className="w-full border bg-gray-100 p-2 rounded"
                 />
@@ -416,14 +472,14 @@ const TabPassedApplicants = () => {
         </div>
       </div>
 
-      {/* ✅ MODAL GỬI MAIL PHỎNG VẤN HÀNG LOẠT (NEW) */}
+      {/* ✅ MODAL GỬI MAIL PHỎNG VẤN HÀNG LOẠT */}
       <InviteScheduleModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         passedApplicants={passedApplicants}
       />
 
-      {/* ✅ 6. JSX MỚI: Thêm Onboarding Modal vào cuối file */}
+      {/* ✅ MODAL ONBOARDING */}
       {showOnboardModal && onboardData && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 w-full max-w-md shadow-2xl transform transition-all">
@@ -444,13 +500,12 @@ const TabPassedApplicants = () => {
                   Nhân viên:
                 </label>
                 <input
-                  value={onboardData.applicant.full_name}
+                  value={onboardData.applicant.name}
                   disabled
                   className="w-full border p-2 bg-gray-100 rounded mt-1"
                 />
               </div>
 
-              {/* ✅ BỔ SUNG: Hiển thị email của ứng viên */}
               <div className="mb-4">
                 <label className="block text-sm text-gray-600">Email:</label>
                 <input
@@ -459,8 +514,8 @@ const TabPassedApplicants = () => {
                   className="w-full border p-2 bg-gray-100 rounded mt-1"
                 />
               </div>
-            
-             <div className="mb-4">
+
+              <div className="mb-4">
                 <label className="block text-sm text-gray-600">
                   Link tài liệu (Sổ tay, Quy định...) — tùy chọn
                 </label>
@@ -473,7 +528,7 @@ const TabPassedApplicants = () => {
                   className="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700">
                   Ngày bắt đầu làm việc:
